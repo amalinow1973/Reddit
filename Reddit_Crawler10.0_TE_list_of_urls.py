@@ -104,9 +104,16 @@ def getFirst(firstPage):
 	time.sleep(5)
 	ua=UserAgent()
 	headers={'user-agent': ua.random}
-	response=requests.get(url, headers=headers, stream=True, timeout=30, verify=False)
-	html=response.text
-	soup=BeautifulSoup(html,'lxml')
+	
+	try:
+		response=requests.get(url, headers=headers, stream=True, timeout=30, verify=False)
+		html=response.text
+		soup=BeautifulSoup(html,'lxml')
+	except ConnectionError:
+		time.sleep(30)
+		url=getURL()
+		getFirst(url)
+	
 	#finds relevant content class within the html and creates beautiful soup object	
 	try:
 		content=soup.findAll(class_='listing search-result-listing')[1]
@@ -138,7 +145,10 @@ def getFirst(firstPage):
 		except IndexError as a:
 			print a
 			url=getURL()
-			
+		except ConnectionError:
+			time.sleep(30)
+			url=getURL()
+			getFirst(url)		
 	
 	for results in content.findAll(class_='contents'):
 				for post_elements in results:
@@ -183,29 +193,30 @@ def getFirst(firstPage):
 											headers={'user-agent': ua.random}
 											path='/?limit=500'
 											link=link+path
-											response=requests.get(link, headers=headers, stream=True, timeout=30, verify=False)
-											html=response.text
-											soup=BeautifulSoup(html, 'lxml')
-											original_post=soup.find(class_='sitetable linklisting').get_text()
-											post_words=original_post
+											try:
+												response=requests.get(link, headers=headers, stream=True, timeout=30, verify=False)
+												html=response.text
+												soup=BeautifulSoup(html, 'lxml')
+												original_post=soup.find(class_='sitetable linklisting').get_text()
+												post_words=original_post
 #tokenize and clean text-----------------------------------------------------------------------------------------------------------										
-											post_blob=TextBlob(original_post)
-											post_noun_phrases=post_blob.noun_phrases
-											post_noun_phrases=[x.encode("utf-8") for x in post_noun_phrases]
-											original_post=sent_tokenize(original_post)
-											original_post=[x.encode("utf-8") for x in original_post]
-											#post_words=word_tokenize(post_words)
-											post_words=post_blob.words
+												post_blob=TextBlob(original_post)
+												post_noun_phrases=post_blob.noun_phrases
+												post_noun_phrases=[x.encode("utf-8") for x in post_noun_phrases]
+												original_post=sent_tokenize(original_post)
+												original_post=[x.encode("utf-8") for x in original_post]
+												#post_words=word_tokenize(post_words)
+												post_words=post_blob.words
 											
 
 											#post_words=list(str(post_words[0]))
 #remove stop-words from 'post words'-----------------------------------------------------------------------------------------------													
-											post_words=[word for word in post_words if word not in stopwords.words('english')]		
-											post_words=[x.encode("utf-8") for x in post_words]
-											post_words=" ".join([x for x in post_words if not x.isdigit()])
-											"|"
-											comments=soup.find(class_='commentarea').get_text()
-											html=soup.find(class_='commentarea')
+												post_words=[word for word in post_words if word not in stopwords.words('english')]		
+												post_words=[x.encode("utf-8") for x in post_words]
+												post_words=" ".join([x for x in post_words if not x.isdigit()])
+												"|"
+												comments=soup.find(class_='commentarea').get_text()
+												html=soup.find(class_='commentarea')
 #find comment authors with comments and delimit so individual comments can be parsed in BDD---------------------------------------
 											#try:
 											#	for ind_comment in html:
@@ -219,8 +230,12 @@ def getFirst(firstPage):
 											#authors= '; '.join(author)+';'
 											#print authors
 #tag locations--------------------------------------------------------------------------------------------------------------------
-											post_location=GeoText(str(post_blob))
-											post_location=post_location.cities
+												post_location=GeoText(str(post_blob))
+												post_location=post_location.cities
+											except ConnectionError:
+												time.sleep(30)
+												url=getURL()
+												getFirst(url)
 											try:
 												for location in post_location:
 													post_geo=("","")
@@ -258,13 +273,14 @@ def getPosts(pageUrl):
 	
 	try:
 		response=requests.get(url, headers=headers,stream=True, timeout=30, verify=False)
+		html=response.text
+		soup=BeautifulSoup(html,'lxml')
 	except ConnectionError:
 		time.sleep(10)
 		url=getURL()
 		getFirst(url)
 	
-	html=response.text
-	soup=BeautifulSoup(html,'lxml')
+	
 #adding header for job-flow tracking
 	print "Page url:",  url, '\n\n'
 	
@@ -330,27 +346,33 @@ def getPosts(pageUrl):
 									headers={'user-agent': ua.random}
 									path='/?limit=500'
 									link=link+path
-									response=requests.get(link, headers=headers,stream=True, timeout=30, verify=False)
-									html=response.text
-									soup=BeautifulSoup(html, 'lxml')
-									original_post=soup.find(class_='sitetable linklisting').get_text()
-									post_words=original_post
+									try:
+										response=requests.get(link, headers=headers,stream=True, timeout=30, verify=False)
+										html=response.text
+										soup=BeautifulSoup(html, 'lxml')
+										original_post=soup.find(class_='sitetable linklisting').get_text()
+										post_words=original_post
 #tokenize and clean text-----------------------------------------------------------------------------------------------------------------------											
-									post_blob=TextBlob(original_post)
-									original_post=sent_tokenize(original_post)
-									original_post=[x.encode("utf-8") for x in original_post]
-									post_noun_phrases=post_blob.noun_phrases
-									post_noun_phrases=[x.encode("utf-8") for x in post_noun_phrases]
-									post_words=word_tokenize(post_words)
-									post_words=[word for word in post_words if word not in stopwords.words('english')]
-									post_words=[x.encode("utf-8") for x in post_words]
-									post_words=" ".join([x for x in post_words if not x.isdigit()])
-									"|"
-									comments=soup.find(class_='commentarea').get_text()
-									'|'
+										post_blob=TextBlob(original_post)
+										original_post=sent_tokenize(original_post)
+										original_post=[x.encode("utf-8") for x in original_post]
+										post_noun_phrases=post_blob.noun_phrases
+										post_noun_phrases=[x.encode("utf-8") for x in post_noun_phrases]
+										post_words=word_tokenize(post_words)
+										post_words=[word for word in post_words if word not in stopwords.words('english')]
+										post_words=[x.encode("utf-8") for x in post_words]
+										post_words=" ".join([x for x in post_words if not x.isdigit()])
+										"|"
+										comments=soup.find(class_='commentarea').get_text()
+										'|'
 #tag location--------------------------------------------------------------------------------------------------------------------
-									post_location=GeoText(str(post_blob))
-									post_location=post_location.cities
+										post_location=GeoText(str(post_blob))
+										post_location=post_location.cities
+									except ConnectionError:
+										time.sleep(30)
+										url=getURL()
+										getFirst(url)
+									
 									try:
 										for location in post_location:
 											post_geo=("","")
