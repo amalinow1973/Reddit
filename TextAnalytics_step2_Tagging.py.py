@@ -8,6 +8,7 @@ import nltk
 import pandas as pd
 from nltk.text import ConcordanceIndex 
 from nltk.tokenize import word_tokenize, sent_tokenize
+import time
 
 #End imports
 ########################################################################################################################
@@ -17,24 +18,28 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 medication_file="E:/med_list.csv"
 df2=pd.read_csv(medication_file,encoding='utf-8')
 medications=df2.values
+
 df3=pd.read_csv('surprise_words.csv',encoding='utf-8')
 surprise_words=df3.values
 #source text file to be analyzed
-inputfile=r'E:\Medication_Tagged_Reddit_Data.csv'
+inputfile=r'E:\all_posts_sorted.csv'
 #using pandas to read text values from multi-column source file (reddit data)
-df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',nrows=1)
-Tag_Word=df["Tag-Word"]
+df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',low_memory=False,nrows=100)
 
-#title=df['Title']
-Full_Text=df["Full_Text"]
-#tcs=df['tcs']
+
+
+title=df['Title']
+Full_Text=df["full_text"]
+tcs=df['tcs']
 #comments_string=str(comments)
 surprise_list=[]
 tag_list=[]
 count=0
 symptom_list=[]
 sentence_list=[]
-#df_results=pd.DataFrame()
+med_list=[]
+
+
 #End Global Variables###################################################################################################
 
 #Main Function##########################################################################################################
@@ -43,7 +48,7 @@ sentence_list=[]
 
 
 
-def concordance(ci, word, width=100, lines=25):
+def concordance(ci, word, width=100, lines=40):
     """
     Rewrite of nltk.text.ConcordanceIndex.print_concordance that returns results
     instead of printing them. 
@@ -85,8 +90,8 @@ def textTagger():
     df_results=pd.DataFrame()
           
     #for word in medications:
-    #    word="".join(word)
-    #    tag_list.append(word)
+     ##  print (m_word)
+       # med_list.append(m_word)
     #    se=[]
     #    sentence=[]
     counter=0
@@ -96,32 +101,43 @@ def textTagger():
         s_word="".join(s_word)
         surprise_list.append(s_word)
         
-    for row in df['Full_Text']:
+    for row in df['full_text']:
+        #print (row)
+        time.sleep(1)
+        results=[]
         seen=[]
         word_list=[]
+        found=[]
         for word in word_tokenize(str(row)):
-           word_list.append(word)
-           for n in word_list:
-                    
-               for a in Tag_Word:
-                   if a==n:                       
+            word_list.append(word)
+        #for med in word_tokenize(str(medications)):
+         #   med_list.append(med)
+            for n in word_list:
+                          
+                for a in word_tokenize(str(medications)):
+            #a=re.sub('[\W_]+', '', a)
+                    #print (a)    
+                    if a == n and a not in seen:                       
+                       found.append(a)
                        tokens=word_tokenize(str(row))
                        text=nltk.text.ConcordanceIndex(tokens)
+                       #print (a,n,text)
                        results.append(concordance(text,str(a)))
-                       seen.append(n)
-                           # print (results)
+                       seen.append(a)
+                       print (results)
                        continue
-                   else:
+                    else:
                        continue
-           counter+=1
-           continue
+        counter+=1
+        print (counter)
+       
         
-    df_results['Tag-Word']=Tag_Word
+    df_results['Tag-Word']=found
     df_results['Sentence']=pd.Series(results)
     df_results.dropna()
     df_results.index.name='Index'
-    print(df_results)
-    df_results.to_csv('null_dropped.csv', sep='|')
+    #print(df_results)
+    df_results.to_csv('med_tagged_step2.csv', sep='|')
     return df_results
 
 results=textTagger()
