@@ -24,7 +24,7 @@ surprise_words=df3.values
 #source text file to be analyzed
 inputfile=r'E:\all_posts_sorted.csv'
 #using pandas to read text values from multi-column source file (reddit data)
-df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',low_memory=False,nrows=100)
+df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',low_memory=False)
 
 
 
@@ -48,7 +48,7 @@ med_list=[]
 
 
 
-def concordance(ci, word, width=100, lines=40):
+def concordance(ci, word, width=100, lines=20):
     """
     Rewrite of nltk.text.ConcordanceIndex.print_concordance that returns results
     instead of printing them. 
@@ -96,46 +96,39 @@ def textTagger():
     #    sentence=[]
     counter=0
     results=[]
-    for s_word in surprise_words:
-        s_word=sent_tokenize(str(s_word))
-        s_word="".join(s_word)
-        surprise_list.append(s_word)
+    found=[]
+    #for s_word in surprise_words:
+     ### surprise_list.append(s_word)
         
     for row in df['full_text']:
         sentence=[]
-        sentence.append(sent_tokenize(str(row)))
-        #print (row)
-        time.sleep(1)
-        results=[]
+        #sentence.append(sent_tokenize(str(row)))
         seen=[]
-        word_list=[]
-        found=[]
+        #word_list=[]
+        
         for word in word_tokenize(str(row)):
-            word_list.append(word)
+            #word_list.append(word)
         #for med in word_tokenize(str(medications)):
          #   med_list.append(med)
-            for n in word_list:
-                          
-                for a in word_tokenize(str(medications)):
-            #a=re.sub('[\W_]+', '', a)
-                    #print (a)    
-                    if a == n and a not in seen:                       
-                       found.append(a)
-                       tokens=word_tokenize(str(row))
-                       text=nltk.text.ConcordanceIndex(tokens)
-                       #print (a,n,text)
-                       results.append(concordance(text,str(a)))
-                       seen.append(a)
-                       print (results)
-                       continue
-                    else:
-                       continue
-        counter+=1
-        print (counter)
+            if word in medications:                       
+                sentence.append(sent_tokenize(str(row)))
+                found.append(word)
+                tokens=word_tokenize(str(row))
+                text=nltk.text.ConcordanceIndex(tokens)
+                #print (a,n,text)
+                results.append(concordance(text,str(word)))
+                seen.append(word)
+                continue
+            else:
+               continue
+        continue  
+    counter+=1
+    print (counter)
        
         
     df_results['Tag-Word']=found
     df_results['Sentence']=pd.Series(results)
+    df_results['full-text']=pd.Series(sentence)
     df_results.dropna()
     df_results.index.name='Index'
     #print(df_results)

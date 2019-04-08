@@ -5,11 +5,16 @@
 #########################################################################################################################
 #Begin imports
 import nltk
+from bs4 import BeautifulSoup
 import pandas as pd
+from nltk.corpus import stopwords
+from nltk import Text
 from nltk.text import ConcordanceIndex 
 from nltk.tokenize import word_tokenize, sent_tokenize
+import csv
 import time
-
+from textblob import TextBlob
+from parse import *
 #End imports
 ########################################################################################################################
 #Global Variables#######################################################################################################
@@ -18,43 +23,31 @@ import time
 medication_file="E:/med_list.csv"
 df2=pd.read_csv(medication_file,encoding='utf-8')
 medications=df2.values
-
 df3=pd.read_csv('surprise_words.csv',encoding='utf-8')
 surprise_words=df3.values
 #source text file to be analyzed
-inputfile=r'E:\all_posts_sorted.csv'
+inputfile=r'E:\Medication_Tagged_Reddit_Data.csv'
 #using pandas to read text values from multi-column source file (reddit data)
-df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',low_memory=False,nrows=100)
+df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',nrows=10)
+Tag_Word=df["Tag-Word"]
 
-
-
-title=df['Title']
-Full_Text=df["full_text"]
-tcs=df['tcs']
+#title=df['Title']
+Full_Text=df["Full_Text"]
+#tcs=df['tcs']
 #comments_string=str(comments)
 surprise_list=[]
 tag_list=[]
 count=0
 symptom_list=[]
 sentence_list=[]
-med_list=[]
-
-
 #End Global Variables###################################################################################################
 
 #Main Function##########################################################################################################
 ########################################################################################################################
-
-
-
-
-def concordance(ci, word, width=100, lines=40):
+def concordance(ci, word, width=80, lines=25):
     """
     Rewrite of nltk.text.ConcordanceIndex.print_concordance that returns results
     instead of printing them. 
-    
-    adjust width and lines parameters to control how much text is returned around the word
-    of interest
 
     See:
     http://www.nltk.org/api/nltk.html#nltk.text.ConcordanceIndex.print_concordance
@@ -80,69 +73,66 @@ def concordance(ci, word, width=100, lines=40):
     return results
 
 #open output file and write header
-def textTagger():
-    """
-    tags reddit title-post-comment fields with medication names and 'surprise' words
-    write results to file and returns dataframe for additional analysis
-    Need to update to include 'surprise words'
-    
-    """
-    df_results=pd.DataFrame()
-          
+with open('Medication_Surprise_Tagged_Reddit_Data-Surprise.csv', 'w', encoding='utf-8') as outfile:
+    fieldnames=['Surprise-Word','Sentence','Full_Text']
+    writer=csv.DictWriter(outfile, delimiter='|', fieldnames=fieldnames, skipinitialspace=True)
+    writer.writeheader()      
     #for word in medications:
-     ##  print (m_word)
-       # med_list.append(m_word)
+    #    word="".join(word)
+    #    tag_list.append(word)
     #    se=[]
     #    sentence=[]
     counter=0
-    results=[]
     for s_word in surprise_words:
         s_word=sent_tokenize(str(s_word))
         s_word="".join(s_word)
         surprise_list.append(s_word)
         
-    for row in df['full_text']:
-        sentence=[]
-        sentence.append(sent_tokenize(str(row)))
-        #print (row)
-        time.sleep(1)
-        results=[]
+    
+    for row in df['Full_Text']:
         seen=[]
+        sentence_list=[]
         word_list=[]
-        found=[]
+#        for sentence in sent_tokenize(str(row)):
+#            sentence_list.append(sentence)
+        seen.append(row)
         for word in word_tokenize(str(row)):
             word_list.append(word)
-        #for med in word_tokenize(str(medications)):
-         #   med_list.append(med)
             for n in word_list:
-                          
-                for a in word_tokenize(str(medications)):
-            #a=re.sub('[\W_]+', '', a)
-                    #print (a)    
-                    if a == n and a not in seen:                       
-                       found.append(a)
-                       tokens=word_tokenize(str(row))
-                       text=nltk.text.ConcordanceIndex(tokens)
-                       #print (a,n,text)
-                       results.append(concordance(text,str(a)))
-                       seen.append(a)
-                       print (results)
-                       continue
+                results=[]
+                #print (n,surprise_list)
+                for a in Tag_Word:
+                
+                    if a==n:
+                        
+                        print('!!!!!MATCHMATCHMATCH!!!!!!!',a, n)
+                        tokens=word_tokenize(str(row))
+                        text=nltk.text.ConcordanceIndex(tokens)
+                        #text.ConcordanceIndex(text)
+                        results.append(concordance(text,str(a)))
+                        #results.append(text.concordance(str(a)))
+                        #print(results)
+                        #writer.writerow({'Surprise-Word':n,'Sentence':results})
+                        seen.append(n)
+                        continue
                     else:
-                       continue
-        counter+=1
-        print (counter)
-       
+                        continue
+            
+        #for word in word_tokenize(str(row)):          
+#tokenize comments and add to list
+            
         
-    df_results['Tag-Word']=found
-    df_results['Sentence']=pd.Series(results)
-    df_results.dropna()
-    df_results.index.name='Index'
-    #print(df_results)
-    df_results.to_csv('med_tagged_step2.csv', sep='|')
-    return df_results
-
-results=textTagger()
-
-
-print("analysis complete", "sentences analyzed:" ,len(results),results.head())
+            writer.writerow({'Surprise-Word':a,'Sentence':results})
+            counter+=1
+            continue
+            #for n in surprise_list:
+             ##  if ([x for x in suprise_list and x in sent]):    #print (n, sent)
+               #     se.append(n)
+                #    sentence.append(sent)
+                    
+                  #  continue
+                #else:
+                 #   continue
+#iterate through list of side effects and prepare for tagging
+        
+print("analysis complete", "sentences analyzed:", counter)

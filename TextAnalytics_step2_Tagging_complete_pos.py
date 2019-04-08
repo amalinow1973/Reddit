@@ -8,8 +8,8 @@ import nltk
 import pandas as pd
 from nltk.text import ConcordanceIndex 
 from nltk.tokenize import word_tokenize, sent_tokenize
-
-
+from nltk.corpus import stopwords
+from gensim.models import Word2Vec
 #End imports
 ########################################################################################################################
 #Global Variables#######################################################################################################
@@ -25,7 +25,7 @@ inputfile=r'E:\reddit_opioids.csv'
 #using pandas to read text values from multi-column source file (reddit data)
 df=pd.read_csv(inputfile, sep='|',error_bad_lines=False,encoding='utf-8',low_memory=False,
                names=["key","id",'Title',"Post","extracted","Post Date","Meta","noun_phrases","points","Total_Comments","Comments","Post City","latlon"],
-              nrows=1000 )
+               )
 
 post=df['Post']
 title=df['Title']
@@ -86,53 +86,37 @@ def textTaggerMeds():
     results=[]
     title=[]
     found=[]
-    nouns=[]
-    adj=[]
+    
     for index,row in df.iterrows():
                
         for word in word_tokenize(str(df.loc[index,"Post"])):
-            word=nltk.pos_tag(word)
-            word=nltk.tag.str2tuple(str(word))
-            
+                       
             if word in medications:        
                 found.append(word)
                 title.append(df.loc[index,'Title'])
                 results.append(df.loc[index,'Post'])
                # tagged_sentence=nltk.pos_tag(str(df.loc[index,"Post"]))
-            if (word[1])=='NN':
-                nouns.append((word[0]))
-                continue
-            if (word[1])=='JJ':
-                adj.append((word[0]))
-                continue
+                
             else:
                 continue
+        
         for word in word_tokenize(str(df.loc[index,"Comments"])):   
-            word=nltk.pos_tag(word)
-            word=nltk.tag.str2tuple(str(word))
+            
+           
             if word in medications:
                 found.append(word)
                 title.append(df.loc[index,'Title'])
                 results.append(df.loc[index,'Comments'])  
-                #tagged_sentence=nltk.pos_tag(str(df.loc[index,"Comments"]))
-            if (word[1])=='NN':
-                nouns.append(word)
-                continue
-            if (word[1])=='JJ':
-                adj.append(word)
-                continue
+                
             else:
-                continue
-           
-        continue  
+                continue  
     
     counter+=1
    # print (counter)
     df_results['Tag-Word']=pd.Series(found)   
     df_results['Title']=pd.Series(title)
     df_results['Results']=pd.Series(results)
-    df_results['nouns']=pd.Series(nouns)
-    df_results['adj']=pd.Series(adj)
+ 
     df_results.dropna()
     df_results.index.name='Index'
     df_results.to_csv('med_tagged_complete.csv', sep='|')
@@ -143,20 +127,61 @@ def textTaggerMeds():
 results=textTaggerMeds()
 surprise_tag=[]
 for index,row in results.iterrows():
-    nouns=[]
+    
     for word in word_tokenize(str(results.loc[index,"Results"])):
         
         if word in surprise_words:
+            
             tokens=sent_tokenize(str(results.loc[index,"Results"]))
+           
             surprise_tag.append(tokens)
                
         else:
             continue
 results['surprise']=pd.Series(surprise_tag)
-results.drop(columns=['Results'],axis=1,inplace=True)
-results.dropna()
+print (results)
+
+#results.drop(columns=['Results'],axis=1,inplace=True)
+#results.dropna()
+ 
+
+nouns=[]
+adj=[]
+#
+for index,row in results.iterrows():
+    text=str(results.loc[index,'Results'])
+    text=word_tokenize(text)
+    text=nltk.pos_tag(text)
+    tokens=nltk.tag.str2tuple(str(text))
+    print (tokens)
+    if (tokens[1])=='NN':
+        nouns.append(tokens[0])
+        continue
+    if (tokens[1])=='JJ':
+        adj.append(tokens[0])
+        continue
+    else:
+        continue
+
+
+results['nouns']=pd.Series(nouns)
+results['adj']=pd.Series(adj)
 results.set_index("Tag-Word", inplace=True)
 results.to_csv('surprise_subset.csv',sep='|')  
 
+"""
+word2vec to find similar constructs in the medication and surprise tagged posts and comments
+
+"""
+all_sentences = nltk.sent_tokenize(str(results['Results']))
+all_words = [nltk.word_tokenize(sent) for sent in all_sentences]
+
+  
+for i in range(len(all_words)):  
+    all_words[i] = [w for w in all_words[i] if w not in stopwords.words('english')]
+
+word2vec = Word2Vec(all_words, min_count=2) 
+vocabulary = word2vec.wv.vocab  
+print(vocabulary) 
 
 print("analysis complete", "sentences analyzed:" ,len(results))
