@@ -35,7 +35,7 @@ y=[]
 sys_tmstmp=[]
 ##
 x=1
-
+print (southwest)
 ##survey questions with 1-6 likert scale responses
 q1=[]
 q2=[]
@@ -112,7 +112,7 @@ def createRecords(integer):
                 condition.append(random.choice(sw_conditions))
                     
         if [i for i in state_na if i in northeast]:
-                base=randint(4200,8000)
+                base=randint(6200,8000)
                 pat_paid_elec.append(base)
                 condition.append(random.choice(ne_conditions))
                     
@@ -123,7 +123,7 @@ def createRecords(integer):
                 state_name.append(i)   
                 condition.append(random.choice(out_conditions))
         else:
-                base=randint(3200,8200)
+                base=randint(3200,8000)
                 pat_paid_elec.append(base)
                 condition.append(random.choice(conditions))
                 continue
@@ -150,7 +150,7 @@ def createRecords(integer):
 """
 create data sets
 """
-df1=createRecords(100)
+df1=createRecords(100000)
 sample=createRecords(500)
 
 """
@@ -167,13 +167,16 @@ for row in df1.iterrows():
     ##smokers will be very unlikely to purchase
     if 'smoking' in str(row):
         target=random.choice(low_prob)
-        
+        continue
+    if (df1.at[row,'age'])<40:
+        print (row)
+    
     y.append(target)
 
 
 df1['target']=y
 df1.to_csv('project5_records.csv')
-
+print ('record creation complete', "number of records created=", len(df1))
 
 
 
