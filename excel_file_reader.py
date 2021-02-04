@@ -28,7 +28,44 @@ results.to_csv(outfile,encoding='utf-8')
 
 
 
-
+def get_data (rootdir):
+    
+    """ Crawls all subdirectories and files from passed parent directory arg
+    Reads all .xlsx files (and all worksheets) combines into single dataframe
+    Writes combined dataframe to file.  Returns the combined dataframe """
+    
+    # Output file parameters
+    timestr = time.strftime("%Y%m%d-%H%M%S")
+    outfile_name="combined_data_dictionary_data_processed-"
+    extension=".csv"
+    
+    # list to hold dataframes
+    worksheets=[]
+    
+    # crawl directory for .xlsx files
+    for subdir, dirs, files in os.walk(rootdir):
+        for file in files:
+            excel_files=[]
+            excel_files.append(os.path.join(subdir, file))
+            for ind_file in excel_files:
+                print (ind_file)
+                # Here the result is a dictionary of DataFrames
+                dct = pd.read_excel(ind_file, sheet_name=None)
+                # Process each DataFrame from this dictionary
+                for df in dct.values():
+                    # multiple worksheets to be saved as dataframe
+                    data=pd.DataFrame()
+                    data = pd.concat([data,df]).drop_duplicates(keep=False)
+                    worksheets.append(data)
+                    
+    # concatenate the list of datframes into one dataframe
+    results=pd.concat(worksheets)
+    # print data summary metrics to console
+    print ("number of rows processed:" + str(len(results)), "from:"+ str(len(worksheets))+ " worksheets")
+    
+    # write data to csv file
+    # results.to_csv(outfile_name+timestr+extension,encoding='utf-8')
+    return results
 
 	
 
